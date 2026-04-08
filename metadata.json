@@ -1,0 +1,5 @@
+{
+  "name": "EEVA Query Pre-processor",
+  "description": "AI-powered query pre-processor for video analytics, featuring spelling correction and safety guardrails.",
+  "requestFramePermissions": []
+}
