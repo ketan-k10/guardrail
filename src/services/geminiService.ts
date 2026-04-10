@@ -16,13 +16,23 @@ export interface PreprocessedQuery {
   timeTakenMs: number;
 }
 
-export async function preprocessQuery(query: string): Promise<PreprocessedQuery> {
+export async function preprocessQuery(
+  query: string,
+  allowedWords: string[] = [],
+  blockedWords: string[] = []
+): Promise<PreprocessedQuery> {
   const model = "gemini-3.1-flash-lite-preview";
   const startTime = performance.now();
   
+  const dictionaryInstruction = `
+### CUSTOM USER DICTIONARY (CRITICAL PRIORITY - SEMANTIC MATCHING):
+- ALLOWED CONCEPTS: [${allowedWords.join(', ')}] (If the query contains these words, their synonyms, or closely related concepts, DO NOT flag them as unsafe, even if they normally violate policy).
+- BLOCKED CONCEPTS: [${blockedWords.join(', ')}] (If the query contains these words, their synonyms, or closely related concepts, you MUST mark "is_safe": false and state the reason as "Contains blocked concept").
+`;
+
   const systemInstruction = `You are the Safety & Optimization Engine for EEVA (AI Video Analytics). 
 Your goal is to sanitize, optimize, and structure raw user queries into a JSON format while strictly enforcing ethical guardrails.
-
+${dictionaryInstruction}
 ### SEARCH GUIDELINES:
 1. ALLOWED (Descriptive): Physical descriptions of people, objects, vehicles, or environments (e.g., "woman with backpack," "red sedan," "unattended backpack," "wet floor").
 2. PROHIBITED (Profiling): Targeting socioeconomic status, religious profiling, or discriminatory intent.

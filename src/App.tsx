@@ -1,13 +1,67 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Search, ShieldCheck, ShieldAlert, Sparkles, Terminal, Copy, Check, RefreshCw, BrainCircuit, MessageSquareQuote, Zap } from 'lucide-react';
+import { Search, ShieldCheck, ShieldAlert, Sparkles, Terminal, Copy, Check, RefreshCw, BrainCircuit, MessageSquareQuote, Zap, Settings, X, Plus, Trash2 } from 'lucide-react';
 import { preprocessQuery, type PreprocessedQuery } from './services/geminiService';
+import { doc, onSnapshot, setDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { db } from './firebase';
 
 export default function App() {
   const [query, setQuery] = useState('');
   const [result, setResult] = useState<PreprocessedQuery | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [copied, setCopied] = useState(false);
+  
+  // Dictionary State
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [allowedWords, setAllowedWords] = useState<string[]>([]);
+  const [blockedWords, setBlockedWords] = useState<string[]>([]);
+  const [newAllowedWord, setNewAllowedWord] = useState('');
+  const [newBlockedWord, setNewBlockedWord] = useState('');
+
+  // Listen to Firestore
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, 'dictionary', 'global'), (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setAllowedWords(data.allowedWords || []);
+        setBlockedWords(data.blockedWords || []);
+      } else {
+        // Initialize if it doesn't exist
+        setDoc(doc(db, 'dictionary', 'global'), { allowedWords: [], blockedWords: [] });
+      }
+    }, (error) => {
+      console.error("Firestore error (make sure rules allow read/write):", error);
+    });
+    return () => unsub();
+  }, []);
+
+  const addWord = async (type: 'allowed' | 'blocked', word: string) => {
+    const cleanWord = word.trim().toLowerCase();
+    if (!cleanWord) return;
+    
+    const docRef = doc(db, 'dictionary', 'global');
+    try {
+      await updateDoc(docRef, {
+        [type === 'allowed' ? 'allowedWords' : 'blockedWords']: arrayUnion(cleanWord)
+      });
+      if (type === 'allowed') setNewAllowedWord('');
+      else setNewBlockedWord('');
+    } catch (error) {
+      console.error("Error adding word:", error);
+      alert("Failed to add word. Check Firestore security rules.");
+    }
+  };
+
+  const removeWord = async (type: 'allowed' | 'blocked', word: string) => {
+    const docRef = doc(db, 'dictionary', 'global');
+    try {
+      await updateDoc(docRef, {
+        [type === 'allowed' ? 'allowedWords' : 'blockedWords']: arrayRemove(word)
+      });
+    } catch (error) {
+      console.error("Error removing word:", error);
+    }
+  };
 
   const handleProcess = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -15,7 +69,7 @@ export default function App() {
 
     setIsLoading(true);
     try {
-      const data = await preprocessQuery(query);
+      const data = await preprocessQuery(query, allowedWords, blockedWords);
       setResult(data);
     } catch (error) {
       console.error(error);
@@ -44,6 +98,16 @@ export default function App() {
       </div>
 
       <main className="relative z-10 max-w-5xl mx-auto px-6 py-12 md:py-24">
+        <div className="absolute top-6 right-6 md:top-12 md:right-12">
+          <button 
+            onClick={() => setIsSettingsOpen(true)}
+            className="p-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full transition-colors text-gray-400 hover:text-white"
+            title="Global Dictionary Settings"
+          >
+            <Settings size={20} />
+          </button>
+        </div>
+
         <header className="mb-12 text-center md:text-left">
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
@@ -148,6 +212,94 @@ export default function App() {
         </AnimatePresence>
       </main>
       <footer className="fixed bottom-0 left-0 right-0 p-6 text-center text-xs text-gray-600 pointer-events-none">EEVA v1.1.0 • Powered by Gemini 3.1 Flash Lite</footer>
+
+      {/* Settings Modal */}
+      <AnimatePresence>
+        {isSettingsOpen && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+          >
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="w-full max-w-2xl bg-[#18181B] border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]"
+            >
+              <div className="flex items-center justify-between p-6 border-b border-white/10">
+                <h2 className="text-xl font-bold flex items-center gap-2"><Settings size={20} className="text-blue-400"/> Global Dictionary</h2>
+                <button onClick={() => setIsSettingsOpen(false)} className="text-gray-400 hover:text-white transition-colors">
+                  <X size={24} />
+                </button>
+              </div>
+              
+              <div className="p-6 overflow-y-auto flex-1 grid md:grid-cols-2 gap-8">
+                {/* Allowed Words */}
+                <div>
+                  <h3 className="text-sm font-semibold uppercase tracking-wider text-emerald-400 mb-4 flex items-center gap-2"><ShieldCheck size={16}/> Allowed Concepts</h3>
+                  <p className="text-xs text-gray-500 mb-4">Words and related concepts here will bypass safety filters.</p>
+                  
+                  <div className="flex gap-2 mb-4">
+                    <input 
+                      type="text" 
+                      value={newAllowedWord}
+                      onChange={(e) => setNewAllowedWord(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && addWord('allowed', newAllowedWord)}
+                      placeholder="Add word..."
+                      className="flex-1 bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-sm focus:border-emerald-500/50 focus:outline-none"
+                    />
+                    <button onClick={() => addWord('allowed', newAllowedWord)} className="p-2 bg-emerald-500/20 text-emerald-400 rounded-lg hover:bg-emerald-500/30 transition-colors">
+                      <Plus size={18} />
+                    </button>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    {allowedWords.map(word => (
+                      <span key={word} className="inline-flex items-center gap-1 px-2 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs rounded-md">
+                        {word}
+                        <button onClick={() => removeWord('allowed', word)} className="hover:text-white ml-1"><X size={12}/></button>
+                      </span>
+                    ))}
+                    {allowedWords.length === 0 && <span className="text-xs text-gray-600 italic">No allowed words.</span>}
+                  </div>
+                </div>
+
+                {/* Blocked Words */}
+                <div>
+                  <h3 className="text-sm font-semibold uppercase tracking-wider text-rose-400 mb-4 flex items-center gap-2"><ShieldAlert size={16}/> Blocked Concepts</h3>
+                  <p className="text-xs text-gray-500 mb-4">Queries with these words or related concepts will be blocked.</p>
+                  
+                  <div className="flex gap-2 mb-4">
+                    <input 
+                      type="text" 
+                      value={newBlockedWord}
+                      onChange={(e) => setNewBlockedWord(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && addWord('blocked', newBlockedWord)}
+                      placeholder="Add word..."
+                      className="flex-1 bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-sm focus:border-rose-500/50 focus:outline-none"
+                    />
+                    <button onClick={() => addWord('blocked', newBlockedWord)} className="p-2 bg-rose-500/20 text-rose-400 rounded-lg hover:bg-rose-500/30 transition-colors">
+                      <Plus size={18} />
+                    </button>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    {blockedWords.map(word => (
+                      <span key={word} className="inline-flex items-center gap-1 px-2 py-1 bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs rounded-md">
+                        {word}
+                        <button onClick={() => removeWord('blocked', word)} className="hover:text-white ml-1"><X size={12}/></button>
+                      </span>
+                    ))}
+                    {blockedWords.length === 0 && <span className="text-xs text-gray-600 italic">No blocked words.</span>}
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
