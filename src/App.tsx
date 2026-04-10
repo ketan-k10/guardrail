@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Search, ShieldCheck, ShieldAlert, Sparkles, Terminal, Copy, Check, RefreshCw, BrainCircuit, MessageSquareQuote, Zap, Settings, X, Plus, Trash2 } from 'lucide-react';
 import { preprocessQuery, type PreprocessedQuery } from './services/geminiService';
-import { doc, onSnapshot, setDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc, updateDoc, arrayUnion, arrayRemove, addDoc, collection } from 'firebase/firestore';
 import { db } from './firebase';
 
 export default function App() {
@@ -71,6 +71,20 @@ export default function App() {
     try {
       const data = await preprocessQuery(query, allowedWords, blockedWords);
       setResult(data);
+      
+      // Log the query to Firestore
+      try {
+        await addDoc(collection(db, 'query_logs'), {
+          original_query: data.original_query,
+          corrected_query: data.corrected_query,
+          is_safe: data.is_safe,
+          reason: data.reason,
+          timestamp: new Date().toISOString()
+        });
+      } catch (logError) {
+        console.error("Failed to log query:", logError);
+      }
+      
     } catch (error) {
       console.error(error);
     } finally {
