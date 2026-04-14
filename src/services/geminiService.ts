@@ -106,7 +106,7 @@ Return ONLY a JSON object:
       config: {
         systemInstruction,
         responseMimeType: "application/json",
-        seed: 42, temperature : 0.0,
+        seed: 42,
         safetySettings: [ 
           { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
           { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
