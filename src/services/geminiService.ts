@@ -19,57 +19,32 @@ export interface PreprocessedQuery {
 export async function preprocessQuery(
   query: string,
   allowedWords: string[] = [],
-  blockedWords: string[] = []
+  blockedWords: string[] = [],
+  modelName: string = "gemini-3.1-flash-lite-preview",
+  sourceLang: string = "Auto-detect",
+  targetLang: string = "English"
 ): Promise<PreprocessedQuery> {
-  const model = "gemini-3.1-flash-lite-preview";
+  const model = modelName;
   const startTime = performance.now();
   
-//   const dictionaryInstruction = `
-// ### CUSTOM USER DICTIONARY (CRITICAL PRIORITY - SEMANTIC MATCHING):
-// - ALLOWED CONCEPTS: [${allowedWords.join(', ')}] (If the query contains these words, their synonyms, or closely related concepts, DO NOT flag them as unsafe, even if they normally violate policy).
-// - BLOCKED CONCEPTS: [${blockedWords.join(', ')}] (If the query contains these words, their synonyms, or closely related concepts, you MUST mark "is_safe": false and state the reason as "Contains blocked concept").
-// `;
-
-//   const systemInstruction = `You are the Safety & Optimization Engine for EEVA (AI Video Analytics). 
-// Your goal is to sanitize, optimize, and structure raw user queries into a JSON format while strictly enforcing ethical guardrails.
-// ${dictionaryInstruction}
-// ### SEARCH GUIDELINES:
-// 1. ALLOWED (Descriptive): Physical descriptions of people, objects, vehicles, or environments (e.g., "woman with backpack," "red sedan," "unattended backpack," "wet floor").
-// 2. PROHIBITED (Profiling): Targeting socioeconomic status, religious profiling, or discriminatory intent.
-
-// ### CRITICAL SAFETY POLICY:
-// You MUST mark "is_safe": false if the query attempts to profile, target, or filter individuals based on:
-// 1. Socioeconomic status (e.g., "poor," "homeless," "beggar," "rich").
-// 2. Protected characteristics used for discrimination or profiling (e.g., race, religion, disability, age). 
-//    *Note: Neutral physical descriptors like gender or clothing for identification are ALLOWED.*
-// 3. Harmful intent or surveillance of private behavior.
-
-// ### TASKS:
-// 1. BIAS CHECK: Identify and block any discriminatory or profiling language based on the policy above.
-// 2. SPELLING & CLIP OPTIMIZATION: Fix typos. If the query is long, conversational, or complex, paraphrase and rephrase it into a concise, highly descriptive caption optimized for CLIP or similar vision-language models. Focus strictly on visual elements, remove filler words, and keep the core meaning and intent intact (ideally under 30 words). 
-//    *CRITICAL RULE*: DO NOT add human context (e.g., "person carrying a...") if the original query is only about an object, vehicle, or scene. For example, "backpack" should remain "backpack" or "a backpack".
-// 3. BIAS CHECK: Identify and block any discriminatory or profiling language based on the policy above.
-// 4. SUGGESTIONS: For SAFE queries, provide 3 logical next steps (e.g., "Red car", "Unattended bag", "Person wearing a red jacket"). For UNSAFE queries, suggest 3 generic safety-compliant searches (e.g., "Person carrying a backpack", "Blue vehicle").
-
-// ### OUTPUT FORMAT:
-// Return ONLY a JSON object:
-// {
-//   "original_query": string,
-//   "corrected_query": string (optimized for CLIP, empty if unsafe),
-//   "is_safe": boolean,
-//   "reason": string (specific policy violated or "Safe"),
-//   "suggestions": string[]
-// }`;
-
 const dictionaryInstruction = `
 ### CUSTOM USER DICTIONARY (CRITICAL PRIORITY - SEMANTIC MATCHING):
 - ALLOWED CONCEPTS: [${allowedWords.join(', ')}] (If the query contains these words, their synonyms, or closely related concepts, DO NOT flag them as unsafe, even if they normally violate policy).
 - BLOCKED CONCEPTS: [${blockedWords.join(', ')}] (If the query contains these words, their synonyms, or closely related concepts, you MUST mark "is_safe": false and state the reason as "Contains blocked concept").
 `;
 
+const languageInstruction = `
+### LANGUAGE INSTRUCTIONS:
+- Source Language: ${sourceLang}
+- Target Language for \`corrected_query\`: ${targetLang}
+- You MUST translate the optimized, \`corrected_query\` into the Target Language (${targetLang}).
+- The \`reason\` and \`suggestions\` should also be provided in the Target Language (${targetLang}).
+`;
+
 const systemInstruction = `You are the Safety & Optimization Engine for EEVA (AI Video Analytics). 
 Your goal is to sanitize, optimize, and structure raw user queries into a JSON format while strictly enforcing ethical guardrails.
 ${dictionaryInstruction}
+${languageInstruction}
 
 ### SEARCH GUIDELINES:
 1. ALLOWED (Descriptive): Neutral physical descriptions of clothing, objects, vehicles, or environments (e.g., "person wearing a black shirt", "woman with backpack", "red sedan").

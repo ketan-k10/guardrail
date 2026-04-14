@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Search, ShieldCheck, ShieldAlert, Sparkles, Terminal, Copy, Check, RefreshCw, BrainCircuit, MessageSquareQuote, Zap, Settings, X, Plus, Trash2 } from 'lucide-react';
+import { Search, ShieldCheck, ShieldAlert, Sparkles, Terminal, Copy, Check, RefreshCw, BrainCircuit, MessageSquareQuote, Zap, Settings, X, Plus, Trash2, Globe, Cpu } from 'lucide-react';
 import { preprocessQuery, type PreprocessedQuery } from './services/geminiService';
 import { doc, onSnapshot, setDoc, updateDoc, arrayUnion, arrayRemove, addDoc, collection } from 'firebase/firestore';
 import { db } from './firebase';
@@ -10,6 +10,11 @@ export default function App() {
   const [result, setResult] = useState<PreprocessedQuery | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [copied, setCopied] = useState(false);
+  
+  // Options State
+  const [selectedModel, setSelectedModel] = useState('gemini-3.1-flash-lite-preview');
+  const [sourceLang, setSourceLang] = useState('Auto-detect');
+  const [targetLang, setTargetLang] = useState('English (United States)');
   
   // Dictionary State
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -69,7 +74,7 @@ export default function App() {
 
     setIsLoading(true);
     try {
-      const data = await preprocessQuery(query, allowedWords, blockedWords);
+      const data = await preprocessQuery(query, allowedWords, blockedWords, selectedModel, sourceLang, targetLang);
       setResult(data);
       
       // Log the query to Firestore
@@ -139,6 +144,69 @@ export default function App() {
           >
             Query Pre-processor
           </motion.h1>
+          
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="flex flex-wrap items-center justify-center md:justify-start gap-4 mt-6"
+          >
+            <div className="flex items-center gap-2 bg-[#18181B] border border-white/10 rounded-xl px-3 py-2">
+              <Cpu size={16} className="text-gray-400" />
+              <select 
+                value={selectedModel} 
+                onChange={(e) => setSelectedModel(e.target.value)}
+                className="bg-transparent border-none text-sm text-gray-300 focus:ring-0 focus:outline-none cursor-pointer"
+              >
+                <option className="bg-[#18181B] text-gray-300" value="gemini-3.1-flash-lite-preview">Flash Lite 3.1 (Fastest)</option>
+                <option className="bg-[#18181B] text-gray-300" value="gemini-3.1-flash-preview">Flash 3.1 (Balanced)</option>
+                <option className="bg-[#18181B] text-gray-300" value="gemini-3.1-pro-preview">Pro 3.1 (Smartest)</option>
+                <option className="bg-[#18181B] text-gray-300" value="gemini-3.1-8b-preview">8B 3.1</option>
+              </select>
+            </div>
+
+            <div className="flex items-center gap-2 bg-[#18181B] border border-white/10 rounded-xl px-3 py-2">
+              <Globe size={16} className="text-gray-400" />
+              <select 
+                value={sourceLang} 
+                onChange={(e) => setSourceLang(e.target.value)}
+                className="bg-transparent border-none text-sm text-gray-300 focus:ring-0 focus:outline-none cursor-pointer"
+              >
+                <option className="bg-[#18181B] text-gray-300" value="Auto-detect">Auto-detect Source</option>
+                <option className="bg-[#18181B] text-gray-300" value="English (United States)">English (United States)</option>
+                <option className="bg-[#18181B] text-gray-300" value="German (Germany)">German (Germany)</option>
+                <option className="bg-[#18181B] text-gray-300" value="Spanish (Spain)">Spanish (Spain)</option>
+                <option className="bg-[#18181B] text-gray-300" value="French (France)">French (France)</option>
+                <option className="bg-[#18181B] text-gray-300" value="Italian (Italy)">Italian (Italy)</option>
+                <option className="bg-[#18181B] text-gray-300" value="Japanese (Japan)">Japanese (Japan)</option>
+                <option className="bg-[#18181B] text-gray-300" value="Dutch (Netherlands)">Dutch (Netherlands)</option>
+                <option className="bg-[#18181B] text-gray-300" value="Polish (Poland)">Polish (Poland)</option>
+                <option className="bg-[#18181B] text-gray-300" value="Portuguese (Brazil)">Portuguese (Brazil)</option>
+                <option className="bg-[#18181B] text-gray-300" value="Portuguese (Portugal)">Portuguese (Portugal)</option>
+                <option className="bg-[#18181B] text-gray-300" value="Swedish (Sweden)">Swedish (Sweden)</option>
+                <option className="bg-[#18181B] text-gray-300" value="Turkish (Turkey)">Turkish (Turkey)</option>
+              </select>
+              <span className="text-gray-500 text-xs px-1">to</span>
+              <select 
+                value={targetLang} 
+                onChange={(e) => setTargetLang(e.target.value)}
+                className="bg-transparent border-none text-sm text-gray-300 focus:ring-0 focus:outline-none cursor-pointer"
+              >
+                <option className="bg-[#18181B] text-gray-300" value="English (United States)">English (United States)</option>
+                <option className="bg-[#18181B] text-gray-300" value="German (Germany)">German (Germany)</option>
+                <option className="bg-[#18181B] text-gray-300" value="Spanish (Spain)">Spanish (Spain)</option>
+                <option className="bg-[#18181B] text-gray-300" value="French (France)">French (France)</option>
+                <option className="bg-[#18181B] text-gray-300" value="Italian (Italy)">Italian (Italy)</option>
+                <option className="bg-[#18181B] text-gray-300" value="Japanese (Japan)">Japanese (Japan)</option>
+                <option className="bg-[#18181B] text-gray-300" value="Dutch (Netherlands)">Dutch (Netherlands)</option>
+                <option className="bg-[#18181B] text-gray-300" value="Polish (Poland)">Polish (Poland)</option>
+                <option className="bg-[#18181B] text-gray-300" value="Portuguese (Brazil)">Portuguese (Brazil)</option>
+                <option className="bg-[#18181B] text-gray-300" value="Portuguese (Portugal)">Portuguese (Portugal)</option>
+                <option className="bg-[#18181B] text-gray-300" value="Swedish (Sweden)">Swedish (Sweden)</option>
+                <option className="bg-[#18181B] text-gray-300" value="Turkish (Turkey)">Turkish (Turkey)</option>
+              </select>
+            </div>
+          </motion.div>
         </header>
 
         <motion.section 
