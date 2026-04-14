@@ -4,6 +4,7 @@ const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY_1 || process.env
 
 export interface PreprocessedQuery {
   original_query: string;
+  detected_source_language: string;
   corrected_query: string;
   is_safe: boolean;
   reason: string;
@@ -68,6 +69,7 @@ You MUST mark "is_safe": false if the query contains or attempts to filter indiv
 Return ONLY a JSON object:
 {
   "original_query": string,
+  "detected_source_language": string (the language detected from the original_query),
   "corrected_query": string (optimized for CLIP, must be empty if unsafe),
   "is_safe": boolean,
   "reason": string (specific policy violated or "Safe"),
@@ -94,6 +96,7 @@ Return ONLY a JSON object:
     if (response.candidates?.[0]?.finishReason === 'SAFETY') {
       return {
         original_query: query,
+        detected_source_language: "Unknown",
         corrected_query: "",
         is_safe: false,
         reason: "The query was blocked by safety filters. Please rephrase your search.",
@@ -132,6 +135,7 @@ Return ONLY a JSON object:
 
     return {
       original_query: query,
+      detected_source_language: "Unknown",
       corrected_query: query,
       is_safe: false,
       reason,

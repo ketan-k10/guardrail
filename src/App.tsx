@@ -81,6 +81,7 @@ export default function App() {
       try {
         await addDoc(collection(db, 'query_logs'), {
           original_query: data.original_query,
+          detected_source_language: data.detected_source_language,
           corrected_query: data.corrected_query,
           is_safe: data.is_safe,
           reason: data.reason,
@@ -134,7 +135,7 @@ export default function App() {
             className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-medium mb-4"
           >
             <Sparkles size={14} />
-            <span>EEVA Intelligence Engine</span>
+            <span>Eeva Intelligence Engine</span>
           </motion.div>
           <motion.h1 
             initial={{ opacity: 0, y: 20 }}
@@ -257,7 +258,17 @@ export default function App() {
                     )}
                   </div>
                   <div className="space-y-4">
-                    <div><label className="block text-xs font-medium text-gray-500 mb-1 uppercase tracking-tight">Original</label><p className="text-gray-300 italic">"{result.original_query}"</p></div>
+                    <div>
+                      <label className="flex items-center gap-2 text-xs font-medium text-gray-500 mb-1 uppercase tracking-tight">
+                        Original
+                        {result.detected_source_language && (
+                          <span className="bg-white/10 px-2 py-0.5 rounded-full text-[10px] normal-case tracking-normal text-gray-300">
+                            Detected: {result.detected_source_language}
+                          </span>
+                        )}
+                      </label>
+                      <p className="text-gray-300 italic">"{result.original_query}"</p>
+                    </div>
                     {result.is_safe && <div><label className="block text-xs font-medium text-gray-500 mb-1 uppercase tracking-tight">Corrected</label><p className="text-white font-medium text-lg">"{result.corrected_query}"</p></div>}
                     <div><label className="block text-xs font-medium text-gray-500 mb-1 uppercase tracking-tight">Reasoning</label><p className="text-gray-400 text-sm leading-relaxed">{result.reason}</p></div>
                   </div>
@@ -293,7 +304,7 @@ export default function App() {
           )}
         </AnimatePresence>
       </main>
-      <footer className="fixed bottom-0 left-0 right-0 p-6 text-center text-xs text-gray-600 pointer-events-none">EEVA v1.1.0 • Powered by Gemini 3.1 Flash Lite</footer>
+      <footer className="fixed bottom-0 left-0 right-0 p-6 text-center text-xs text-gray-600 pointer-events-none">Eeva v1.1.0 • Powered by Gemini 3.1 Flash Lite</footer>
 
       {/* Settings Modal */}
       <AnimatePresence>
