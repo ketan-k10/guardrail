@@ -29,7 +29,7 @@ export async function preprocessQuery(
   const startTime = performance.now();
   
 const dictionaryInstruction = `
-### CUSTOM USER DICTIONARY (CRITICAL PRIORITY - SEMANTIC MATCHING):
+### CUSTOM USER DICTIONARY (CRITICAL PRIORITY - SEMANTIC MATCHING ):
 - ALLOWED CONCEPTS: [${allowedWords.join(', ')}] (If the query contains these words, their synonyms, or closely related concepts, DO NOT flag them as unsafe, even if they normally violate policy).
 - BLOCKED CONCEPTS: [${blockedWords.join(', ')}] (If the query contains these words, their synonyms, or closely related concepts, you MUST mark "is_safe": false and state the reason as "Contains blocked concept").
 `;
